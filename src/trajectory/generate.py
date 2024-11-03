@@ -86,7 +86,7 @@ def parallel_path_computation(graph, unvisited_nodes, edge_nodes, min_path_lengt
     paths = []
 
     # Create a multiprocessing pool
-    processes = max(1, cpu_count() - 1)
+    processes = max(1, cpu_count() - 4)
 
     logging.debug(f"Using {processes} processes")
 

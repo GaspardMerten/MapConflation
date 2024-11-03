@@ -1,5 +1,4 @@
 import json
-import os
 import uuid
 from multiprocessing import Pool, cpu_count
 from typing import List, Any, Tuple
@@ -97,27 +96,17 @@ class LeuvenMapMatching(MapMatching):
         self,
         trajectories: List[Trajectory],
         trajectories_ids: List[TrajectoryIds],
-        processes: int = max(1, 10),
+        processes: int = max(1, cpu_count() - 4),
     ) -> List[Match]:
         all_matches = []
 
         # Iterate over large batches
-        for large_batch in tqdm(range(0, len(trajectories), 1000), desc="Large batch"):
-            batch_key = large_batch  # Use the starting index as the identifier
-            batch_filename = f"range_{batch_key}.json"
-
-            # Skip this batch if its file already exists
-            if os.path.exists(batch_filename):
-                # Load existing results from the file
-                with open(batch_filename, "r") as file:
-                    batch_matches = json.load(file)
-                all_matches.extend(batch_matches)
-                continue
-
-            large_batch_trajectories = trajectories[large_batch : large_batch + 1000]
+        for large_batch in tqdm(range(0, len(trajectories), 4000), desc="Large batch"):
+            large_batch_trajectories = trajectories[large_batch : large_batch + 4000]
             large_batch_trajectories_ids = trajectories_ids[
-                large_batch : large_batch + 1000
+                large_batch : large_batch + 4000
             ]
+
             batch_matches = []
 
             with Pool(processes) as pool:
@@ -136,10 +125,6 @@ class LeuvenMapMatching(MapMatching):
                     batch_matches.extend(result)
 
                 pool.close()
-
-            # Save the results of this batch to its own JSON file
-            with open(batch_filename, "w") as file:
-                json.dump(batch_matches, file)
 
             # Add this batch's matches to the final result
             all_matches.extend(batch_matches)

@@ -8,12 +8,14 @@ import networkx as nx
 import pyproj
 from shapely import LineString
 
+from src.conflate.simple import SimpleConflater
 from src.graph.io import (
     load_graph_from_edges_and_nodes_df,
     save_graph_to_gml,
     load_graph_from_gml,
     load_graph_from_osm,
 )
+from src.graph.plot import plot_graphs, plot_graphs_with_results
 from src.graph.transform import reduce_bounding_box, crop_graph
 from src.map_matching.leuven import LeuvenMapMatching
 from src.trajectory.generate import generate_trajectories_new
@@ -127,7 +129,6 @@ def compute_or_load_matched_ids(
 
 
 if __name__ == "__main__":
-    os.makedirs("out", exist_ok=True)
     logging.basicConfig(level=logging.WARNING)
 
     graph_b = load_or_create("out/graph_b.gml")
@@ -140,28 +141,22 @@ if __name__ == "__main__":
     graph_a = nodes_and_edges_to_int(graph_a)
     logging.info("Loaded graph A")
 
-    for i in range(10):
-        print(f"AAA {i}")
-        trajectories_ids = cache_generate_trajectories_id(
-            graph_a, "out/trajectories_id.json"
-        )
+    trajectories_ids = cache_generate_trajectories_id(
+        graph_a, "out/trajectories_id.json"
+    )
 
-        a = len(trajectories_ids) // 10
-        logging.info("Generated trajectories ids")
+    a = len(trajectories_ids) // 10
+    logging.info("Generated trajectories ids")
 
-        trajectories = cache_trajectories(
-            graph_a, trajectories_ids, "out/trajectories.json"
-        )
+    trajectories = cache_trajectories(
+        graph_a, trajectories_ids, "out/trajectories.json"
+    )
 
-        trajectories = trajectories[i * a : (i + 1) * a]
-        trajectories_ids = trajectories_ids[i * a : (i + 1) * a]
+    logging.info("Generated trajectories")
 
-        logging.info("Generated trajectories")
-        matched_ids = compute_or_load_matched_ids(
-            f"out/matches_{i}.json", graph_b, trajectories, trajectories_ids
-        )
-    exit(1)
-    logging.info("Matched ids")
+    matched_ids = compute_or_load_matched_ids(
+        f"out/matches.json", graph_b, trajectories, trajectories_ids
+    )
 
     conflater = SimpleConflater(graph_a, graph_b, matched_ids)
     results = conflater.conflate()
