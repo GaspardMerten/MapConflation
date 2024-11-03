@@ -8,9 +8,12 @@ from src.types import ConflationResult
 
 BLUE = [0, 0, 255]
 GREEN = [0, 255, 0]
+SPEED = "[10*speed, 255-10*speed, 0]"
 
 
-def create_layer(graph: nx.Graph, layer_type: str, color: list, radius=.5, width=0.25):
+def create_layer(
+    graph: nx.Graph, layer_type: str, color: list | str, radius=0.5, width=0.25
+):
     """
     Create a Pydeck layer for nodes or edges in the graph.
 
@@ -101,8 +104,8 @@ def plot_graphs(graph_a: nx.Graph, graph_b: nx.Graph, save_path="graphs.html"):
     """
     node_layer_a = create_layer(graph_a, "ScatterplotLayer", BLUE)
     node_layer_b = create_layer(graph_b, "ScatterplotLayer", GREEN)
-    edge_layer_a = create_layer(graph_a, "PathLayer", BLUE)
-    edge_layer_b = create_layer(graph_b, "PathLayer", GREEN)
+    edge_layer_a = create_layer(graph_a, "PathLayer", SPEED)
+    edge_layer_b = create_layer(graph_b, "PathLayer", SPEED)
 
     view_state_a = get_view_state(graph_a)
 
@@ -180,13 +183,12 @@ def plot_graphs_with_results(
             }
         )
 
-
     node_layer_points_b_on_a = pdk.Layer(
         "ScatterplotLayer",
         data=points_b_on_a,
         get_position="[x, y]",
-        get_radius=.5,
-        get_fill_color=[255, 255, 0],
+        get_radius=0.5,
+        get_fill_color="[10*speed, 255-10*speed, 0]",
         pickable=True,
     )
 
@@ -194,7 +196,7 @@ def plot_graphs_with_results(
         "PathLayer",
         data=paths_from_point_b_to_interpolated_a,
         get_color=[255, 255, 0],
-        get_width=.1,
+        get_width=0.1,
         pickable=True,
     )
 

@@ -81,7 +81,7 @@ def process_node(args):
     return path
 
 
-def parallel_path_computation(graph, unvisited_nodes, edge_nodes, min_path_length):
+def parallel_path_computation(graph, unvisited_nodes, min_path_length):
     all_nodes = list(graph.nodes())
     paths = []
 
@@ -132,9 +132,7 @@ def generate_trajectories_new(
         unvisited_nodes -= set(path)
         paths.append(path)
 
-    paths += parallel_path_computation(
-        graph, unvisited_nodes, edge_nodes, min_path_length
-    )
+    paths += parallel_path_computation(graph, unvisited_nodes, min_path_length)
 
     logging.info(f"Generated {len(paths)} trajectories")
 

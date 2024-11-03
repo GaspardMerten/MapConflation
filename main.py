@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import random
 from typing import List
 
 import geopandas as gpd
@@ -128,12 +129,39 @@ def compute_or_load_matched_ids(
     return matches
 
 
+def add_random_speed_valus_to_graph(graph):
+    for u, v, data in graph.edges(data=True):
+        data["speed"] = random.randint(1, 10)
+    return graph
+
+
+def insert_node_at_edge(graph, edge, new_node_id, x, y):
+    """
+    Insert a node in the edge (u, v) of the graph.
+    :param graph: The graph to insert the node
+    :param edge: The edge to insert the node
+    :param new_node_id: The new node to insert
+    :param x: The x coordinate of the new node
+    :param y: The y coordinate of the new node
+    :return: The new graph with the node inserted
+    """
+
+    graph.add_node(new_node_id, x=x, y=y)
+    graph.add_edge(edge[0], new_node_id)
+    graph.add_edge(new_node_id, edge[1])
+    # remove the original edge
+    graph.remove_edge(edge[0], edge[1])
+
+    return graph
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
     graph_b = load_or_create("out/graph_b.gml")
     graph_b = graph_b.subgraph(max(nx.connected_components(graph_b), key=len))
     graph_b = nodes_and_edges_to_int(graph_b)
+    graph_b = add_random_speed_valus_to_graph(graph_b)
     logging.info("Loaded graph B")
 
     graph_a = prepare_and_load_graph_a("out/graph_a.gml")
@@ -160,6 +188,40 @@ if __name__ == "__main__":
 
     conflater = SimpleConflater(graph_a, graph_b, matched_ids)
     results = conflater.conflate()
+
+    results_map = {result.point_b: result for result in results}
+
+    for edge in graph_b.edges:
+        # Check if both start and end nodes are in the results
+        if edge[0] not in results_map or edge[1] not in results_map:
+            continue
+
+        node_b_start = results_map[edge[0]]
+        node_b_end = results_map[edge[1]]
+        new_node_id_start = f"graph_b_{node_b_start.point_b}"
+        new_node_id_end = f"graph_b_{node_b_end.point_b}"
+
+        insert_node_at_edge(
+            graph_a,
+            node_b_start.segment_a_id,
+            new_node_id_start,
+            node_b_start.point_b_on_segment_a[0],
+            node_b_start.point_b_on_segment_a[1],
+        )
+
+        insert_node_at_edge(
+            graph_a,
+            node_b_end.segment_a_id,
+            new_node_id_end,
+            node_b_end.point_b_on_segment_a[0],
+            node_b_end.point_b_on_segment_a[1],
+        )
+
+        shortest_path = nx.shortest_path(graph_a, new_node_id_start, new_node_id_end)
+
+        for i in range(len(shortest_path) - 1):
+            u, v = shortest_path[i], shortest_path[i + 1]
+            graph_a[u][v]["speed"] = graph_b[edge[0]][edge[1]]
 
     plot_graphs(graph_a, graph_b, "graphs.html")
     plot_graphs_with_results(graph_a, graph_b, results, "graphs.html")
