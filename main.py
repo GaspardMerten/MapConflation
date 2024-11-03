@@ -129,7 +129,7 @@ def compute_or_load_matched_ids(
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.WARNING)
+    logging.basicConfig(level=logging.INFO)
 
     graph_b = load_or_create("out/graph_b.gml")
     graph_b = graph_b.subgraph(max(nx.connected_components(graph_b), key=len))
