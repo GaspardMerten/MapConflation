@@ -48,7 +48,7 @@ class SimpleConflater(Conflater):
         for index, (node, next_node) in enumerate(zip(sub_path_a[:-1], sub_path_a[1:])):
             x, y = id_b_point
 
-            projection = self._project_point(((node, next_node),), id_b)
+            projection = self._project_point((node, next_node), id_b)
             distance = (projection[0] - x) ** 2 + (projection[1] - y) ** 2
 
             if distance < smallest_distance:
@@ -86,14 +86,15 @@ class SimpleConflater(Conflater):
 
                 if closest_node is None:
                     continue
-
+                print((closest_node,closest_next_node))
                 match_count[point][(closest_node, closest_next_node)] += 1
 
         # Majority voting
         match = []
-
+        print(match_count)
         for point, closest_nodes in tqdm(list(match_count.items())):
             segment = max(closest_nodes, key=closest_nodes.get)
+            print(segment)
             match.append(
                 ConflationResult(
                     segment,
