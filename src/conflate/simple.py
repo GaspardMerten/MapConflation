@@ -105,7 +105,6 @@ class SimpleConflater(Conflater):
 
         for match in self.filtered_match():
             trace_a, _, trace_b = match
-            print(trace_a)
             trace_b = list(map(lambda x: x, trace_b))[5:-5]
 
             for point in trace_b:
@@ -116,6 +115,7 @@ class SimpleConflater(Conflater):
                 if closest_node is None:
                     continue
 
+                print(closest_node,closest_next_node)
                 match_count[point][(closest_node, closest_next_node)] += 1
 
         # Majority voting
