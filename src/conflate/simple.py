@@ -28,10 +28,10 @@ class SimpleConflater(Conflater):
             print(f"Skipped: {skipped}, Not Skipped: {not_skipped}")
             yield match
 
-    def _coord_from_node_a(self, node_a) -> Tuple[float, float]:
+    def _coord_from_node_a(self, node_a: int) -> Tuple[float, float]:
         return self.graph_a.nodes[node_a]["x"], self.graph_a.nodes[node_a]["y"]
 
-    def _coord_from_node_b(self, node_b) -> Tuple[float, float]:
+    def _coord_from_node_b(self, node_b: int) -> Tuple[float, float]:
         return self.graph_b.nodes[node_b]["x"], self.graph_b.nodes[node_b]["y"]
 
     def _distance_node_a_node_b(self, node_a, node_b) -> float:
@@ -58,7 +58,7 @@ class SimpleConflater(Conflater):
 
         return closest_node, smallest_distance, closest_next_node, sub_path_a
 
-    def _project_point(self, segment, point) -> Tuple[float, float]:
+    def _project_point(self, segment: Tuple[int, int], point) -> Tuple[float, float]:
         x1, y1 = self._coord_from_node_a(segment[0])
         x2, y2 = self._coord_from_node_a(segment[1])
         x, y = self._coord_from_node_b(point)
@@ -77,7 +77,7 @@ class SimpleConflater(Conflater):
 
         for match in self.filtered_match():
             trace_a, _, trace_b = match
-            trace_b = trace_b[5:-5]
+            trace_b = list(map(lambda x:x[0], trace_b[5:-5]))
 
             for point in trace_b:
                 closest_node, _, closest_next_node, _ = (
