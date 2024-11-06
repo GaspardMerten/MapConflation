@@ -1,3 +1,4 @@
+import math
 from collections import defaultdict
 from typing import Generator, Tuple, List
 
@@ -6,6 +7,31 @@ from tqdm import tqdm
 
 from src.conflate._base import Conflater
 from src.types import Match, ConflationResult
+
+
+def point_to_segment_distance(P, A, B):
+    Px, Py = P
+    Ax, Ay = A
+    Bx, By = B
+
+    # Calculate the squared length of the segment (A to B)
+    segment_length_squared = (Bx - Ax) ** 2 + (By - Ay) ** 2
+
+    # If A and B are the same point, return the distance from P to A
+    if segment_length_squared == 0:
+        return math.sqrt((Px - Ax) ** 2 + (Py - Ay) ** 2)
+
+    # Projection factor of P onto the line AB, normalized by the segment length
+    t = max(0, min(1, ((Px - Ax) * (Bx - Ax) + (Py - Ay) * (By - Ay)) / segment_length_squared))
+
+    # Find the closest point on the segment to P
+    closest_x = Ax + t * (Bx - Ax)
+    closest_y = Ay + t * (By - Ay)
+
+    # Calculate the distance from P to this closest point
+    distance = math.sqrt((Px - closest_x) ** 2 + (Py - closest_y) ** 2)
+
+    return distance
 
 
 class SimpleConflater(Conflater):
@@ -28,10 +54,10 @@ class SimpleConflater(Conflater):
             print(f"Skipped: {skipped}, Not Skipped: {not_skipped}")
             yield match
 
-    def _coord_from_node_a(self, node_a: int) -> Tuple[float, float]:
+    def _coord_from_node_a(self, node_a) -> Tuple[float, float]:
         return self.graph_a.nodes[node_a]["x"], self.graph_a.nodes[node_a]["y"]
 
-    def _coord_from_node_b(self, node_b: int) -> Tuple[float, float]:
+    def _coord_from_node_b(self, node_b) -> Tuple[float, float]:
         return self.graph_b.nodes[node_b]["x"], self.graph_b.nodes[node_b]["y"]
 
     def _distance_node_a_node_b(self, node_a, node_b) -> float:
@@ -46,10 +72,12 @@ class SimpleConflater(Conflater):
         id_b_point = self._coord_from_node_b(id_b)
 
         for index, (node, next_node) in enumerate(zip(sub_path_a[:-1], sub_path_a[1:])):
+            # Compute perpendicular distance
+            x1, y1 = self._coord_from_node_a(node)
+            x2, y2 = self._coord_from_node_a(next_node)
             x, y = id_b_point
 
-            projection = self._project_point(((node, next_node),), id_b)
-            distance = (projection[0] - x) ** 2 + (projection[1] - y) ** 2
+            distance = point_to_segment_distance((x, y), (x1, y1), (x2, y2))
 
             if distance < smallest_distance:
                 smallest_distance = distance
@@ -58,7 +86,7 @@ class SimpleConflater(Conflater):
 
         return closest_node, smallest_distance, closest_next_node, sub_path_a
 
-    def _project_point(self, segment: Tuple[int, int], point) -> Tuple[float, float]:
+    def _project_point(self, segment, point) -> Tuple[float, float]:
         x1, y1 = self._coord_from_node_a(segment[0])
         x2, y2 = self._coord_from_node_a(segment[1])
         x, y = self._coord_from_node_b(point)
@@ -77,21 +105,21 @@ class SimpleConflater(Conflater):
 
         for match in self.filtered_match():
             trace_a, _, trace_b = match
-            trace_b = trace_b[5:-5]
+            trace_b = list(map(lambda x: x[0], trace_b))[5:-5]
 
             for point in trace_b:
-                closest_node, _, closest_next_node, _ = (
+                closest_node, closest_distance, closest_next_node, _ = (
                     self._find_closest_node(point, trace_a)
                 )
 
                 if closest_node is None:
                     continue
-                print(closest_next_node,_,closest_next_node,_)
+
                 match_count[point][(closest_node, closest_next_node)] += 1
 
         # Majority voting
         match = []
-        print(match_count)
+
         for point, closest_nodes in tqdm(list(match_count.items())):
             segment = max(closest_nodes, key=closest_nodes.get)
             match.append(
