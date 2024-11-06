@@ -77,10 +77,8 @@ class SimpleConflater(Conflater):
 
         for match in self.filtered_match():
             trace_a, _, trace_b = match
-            print(trace_b)
-            trace_b = list(map(lambda x:x[0], trace_b[5:-5]))
-            print(trace_b)
-
+            trace_b = trace_b[5:-5]
+            print(trace_a)
             for point in trace_b:
                 closest_node, _, closest_next_node, _ = (
                     self._find_closest_node(point, trace_a)
