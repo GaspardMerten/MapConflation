@@ -115,7 +115,6 @@ class SimpleConflater(Conflater):
                 if closest_node is None:
                     continue
 
-                print(closest_node,closest_next_node)
                 match_count[point][(closest_node, closest_next_node)] += 1
 
         # Majority voting
