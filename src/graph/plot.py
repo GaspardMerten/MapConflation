@@ -8,7 +8,7 @@ from src.types import ConflationResult
 
 BLUE = [0, 0, 255]
 GREEN = [0, 255, 0]
-SPEED = "[10*speed, 255-10*speed, 0]"
+SPEED = "[speed*10, speed*10, speed*10]"
 
 
 def create_layer(
@@ -188,7 +188,6 @@ def plot_graphs_with_results(
         data=points_b_on_a,
         get_position="[x, y]",
         get_radius=0.5,
-        get_fill_color="[10*speed, 255-10*speed, 0]",
         pickable=True,
     )
 

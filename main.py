@@ -92,15 +92,25 @@ def nodes_and_edges_to_int(graph):
     return graph
 
 
-def insert_edge_geometry(graph):
-    for u, v, data in graph.edges(data=True):
-        node_u = graph.nodes[u]
-        node_v = graph.nodes[v]
-        data["geometry"] = LineString(
-            [(node_u["x"], node_u["y"]), (node_v["x"], node_v["y"])]
-        )
-    # Ensure geometry are crs aware
-    graph.graph["crs"] = pyproj.CRS("EPSG:4326")
+def insert_node_at_edge(graph, edge, new_node_id, x, y):
+    """
+    Insert a node in the edge (u, v) of the graph.
+    :param graph: The graph to insert the node
+    :param edge: The edge to insert the node
+    :param new_node_id: The new node to insert
+    :param x: The x coordinate of the new node
+    :param y: The y coordinate of the new node
+    :return: The new graph with the node inserted
+    """
+
+    if not graph.has_edge(edge[0], edge[1]):
+        return graph
+    graph.add_node(new_node_id, x=x, y=y)
+    graph.add_edge(edge[0], new_node_id)
+    graph.add_edge(new_node_id, edge[1])
+    # remove the original edge
+    graph.remove_edge(edge[0], edge[1])
+
     return graph
 
 
@@ -197,7 +207,7 @@ if __name__ == "__main__":
     results = load_or_conflate(
         graph_a,
         graph_b,
-        random.sample(matched_ids, 100),
+        matched_ids
         "out/results.json",
     )
 
@@ -229,11 +239,14 @@ if __name__ == "__main__":
             node_b_end.point_b_on_segment_a[1],
         )
 
-        shortest_path = nx.shortest_path(graph_a, new_node_id_start, new_node_id_end)
+        try:
+            shortest_path = nx.shortest_path(graph_a, new_node_id_start, new_node_id_end)
 
-        for i in range(len(shortest_path) - 1):
-            u, v = shortest_path[i], shortest_path[i + 1]
-            graph_a[u][v]["speed"] = graph_b[edge[0]][edge[1]]
+            for i in range(len(shortest_path) - 1):
+                u, v = shortest_path[i], shortest_path[i + 1]
+                graph_a[u][v]["speed"] = graph_b[edge[0]][edge[1]]["speed"]
+        except Exception:
+            print("No path")
 
     plot_graphs(graph_a, graph_b, "graphs.html")
     plot_graphs_with_results(graph_a, graph_b, results, "graphs.html")
