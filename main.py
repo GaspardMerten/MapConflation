@@ -2,7 +2,6 @@ import json
 import logging
 import os
 import random
-from typing import List
 
 import geopandas as gpd
 import networkx as nx
@@ -20,7 +19,6 @@ from src.graph.plot import plot_graphs, plot_graphs_with_results
 from src.graph.transform import reduce_bounding_box, crop_graph
 from src.map_matching.leuven import LeuvenMapMatching
 from src.trajectory.generate import generate_trajectories_new
-from src.types import TrajectoryIds, Trajectory
 
 
 def load_or_create(path: str):
@@ -65,7 +63,7 @@ def cache_generate_trajectories_id(graph, path):
         trajectories = json.load(open(path, "r"))
     else:
         trajectories = []
-        for _ in range(10):
+        for _ in range(3):
             print("Trajectory", _)
             trajectories += generate_trajectories_new(graph)
         json.dump(trajectories, open(path, "w"))
@@ -114,12 +112,22 @@ def make_edge_both_directions(graph):
 def compute_or_load_matched_ids(
     path: str,
     graph_b: nx.Graph,
-    trajectories: List[Trajectory],
-    trajectories_ids: List[TrajectoryIds],
 ):
     if os.path.exists(path):
         matches = json.load(open(path, "r"))
     else:
+        trajectories_ids = cache_generate_trajectories_id(
+            graph_a, "out/trajectories_id.json"
+        )
+
+        a = len(trajectories_ids) // 10
+        logging.info("Generated trajectories ids")
+
+        trajectories = cache_trajectories(
+            graph_a, trajectories_ids, "out/trajectories.json"
+        )
+
+        logging.info("Generated trajectories")
         map_matching = LeuvenMapMatching(graph_b)
         matches = map_matching.match_trajectories(
             trajectories,
@@ -155,6 +163,15 @@ def insert_node_at_edge(graph, edge, new_node_id, x, y):
     return graph
 
 
+def load_or_conflate(graph_a, graph_b, matched_ids, path):
+    if os.path.exists(path):
+        return json.load(open(path, "r"))
+    else:
+        conflater = SimpleConflater(graph_a, graph_b, matched_ids)
+        results = conflater.conflate()
+        json.dump(results, open(path, "w"))
+        return results
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
@@ -169,25 +186,15 @@ if __name__ == "__main__":
     graph_a = nodes_and_edges_to_int(graph_a)
     logging.info("Loaded graph A")
 
-    trajectories_ids = cache_generate_trajectories_id(
-        graph_a, "out/trajectories_id.json"
+    matched_ids = compute_or_load_matched_ids(f"out/matches.json", graph_b)
+    logging.info("Computed matches")
+
+    results = load_or_conflate(
+        graph_a,
+        graph_b,
+        matched_ids,
+        "out/results.json",
     )
-
-    a = len(trajectories_ids) // 10
-    logging.info("Generated trajectories ids")
-
-    trajectories = cache_trajectories(
-        graph_a, trajectories_ids, "out/trajectories.json"
-    )
-
-    logging.info("Generated trajectories")
-
-    matched_ids = compute_or_load_matched_ids(
-        f"out/matches.json", graph_b, trajectories, trajectories_ids
-    )
-
-    conflater = SimpleConflater(graph_a, graph_b, matched_ids)
-    results = conflater.conflate()
 
     results_map = {result.point_b: result for result in results}
 
