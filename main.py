@@ -207,7 +207,7 @@ if __name__ == "__main__":
     results = load_or_conflate(
         graph_a,
         graph_b,
-        matched_ids
+        matched_ids,
         "out/results.json",
     )
 
