@@ -5,8 +5,6 @@ import random
 
 import geopandas as gpd
 import networkx as nx
-import pyproj
-from shapely import LineString
 
 from src.conflate.simple import SimpleConflater
 from src.graph.io import (
@@ -15,7 +13,7 @@ from src.graph.io import (
     load_graph_from_gml,
     load_graph_from_osm,
 )
-from src.graph.plot import plot_graphs, plot_graphs_with_results
+from src.graph.plot import plot_graphs_with_results
 from src.graph.transform import reduce_bounding_box, crop_graph
 from src.map_matching.leuven import LeuvenMapMatching
 from src.trajectory.generate import generate_trajectories_new
@@ -165,6 +163,8 @@ def insert_node_at_edge(graph, edge, new_node_id, x, y):
     :return: The new graph with the node inserted
     """
 
+    if not graph.has_edge(edge[0], edge[1]):
+        return graph
     graph.add_node(new_node_id, x=x, y=y)
     graph.add_edge(edge[0], new_node_id)
     graph.add_edge(new_node_id, edge[1])
@@ -207,7 +207,7 @@ if __name__ == "__main__":
     results = load_or_conflate(
         graph_a,
         graph_b,
-        matched_ids,
+        matched_ids[:5000],
         "out/results.json",
     )
 
@@ -247,6 +247,4 @@ if __name__ == "__main__":
                 graph_a[u][v]["speed"] = graph_b[edge[0]][edge[1]]["speed"]
         except Exception:
             print("No path")
-
-    plot_graphs(graph_a, graph_b, "graphs.html")
     plot_graphs_with_results(graph_a, graph_b, results, "graphs.html")

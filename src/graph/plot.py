@@ -8,7 +8,7 @@ from src.types import ConflationResult
 
 BLUE = [0, 0, 255]
 GREEN = [0, 255, 0]
-SPEED = "[speed*10, speed*10, speed*10]"
+SPEED = "[25*speed, 0, 0]"
 
 
 def create_layer(
@@ -46,9 +46,10 @@ def create_layer(
                     "path": [
                         [graph.nodes[u]["x"], graph.nodes[u]["y"]],
                         [graph.nodes[v]["x"], graph.nodes[v]["y"]],
-                    ]
+                    ],
+                    **data,
                 }
-                for u, v in graph.edges()
+                for u, v,data in graph.edges(data=True)
             ],
             get_color=color,
             get_width=width,
@@ -93,35 +94,6 @@ def plot_graph(graph: nx.Graph, save_path: str):
     deck_map.to_html(save_path)
 
 
-def plot_graphs(graph_a: nx.Graph, graph_b: nx.Graph, save_path="graphs.html"):
-    """
-    Plot two graphs side by side using Pydeck.
-
-    :param graph_a: A NetworkX graph
-    :param graph_b: A NetworkX graph
-    :param save_path: The path to save the plot to
-    :return: None
-    """
-    node_layer_a = create_layer(graph_a, "ScatterplotLayer", BLUE)
-    node_layer_b = create_layer(graph_b, "ScatterplotLayer", GREEN)
-    edge_layer_a = create_layer(graph_a, "PathLayer", SPEED)
-    edge_layer_b = create_layer(graph_b, "PathLayer", SPEED)
-
-    view_state_a = get_view_state(graph_a)
-
-    deck_map = pdk.Deck(
-        map_provider=BaseMapProvider.MAPBOX.value,
-        api_keys={
-            "mapbox": "pk.eyJ1IjoiZ2FzcGFyZG0iLCJhIjoiY2xlNGV2Ymk4MDJlbDN4dnp1d3ptd3JuMiJ9.sib6JobIMGz00INoFpWpbg"
-        },
-        layers=[node_layer_a, node_layer_b, edge_layer_a, edge_layer_b],
-        initial_view_state=view_state_a,
-        tooltip=True,
-        map_style="mapbox://styles/mapbox/standard",
-    )
-
-    deck_map.to_html(save_path)
-
 
 def plot_graphs_with_results(
     graph_a: nx.Graph,
@@ -139,8 +111,8 @@ def plot_graphs_with_results(
     """
     node_layer_a = create_layer(graph_a, "ScatterplotLayer", BLUE)
     node_layer_b = create_layer(graph_b, "ScatterplotLayer", GREEN)
-    edge_layer_a = create_layer(graph_a, "PathLayer", BLUE)
-    edge_layer_b = create_layer(graph_b, "PathLayer", GREEN)
+    edge_layer_a = create_layer(graph_a, "PathLayer", SPEED)
+    edge_layer_b = create_layer(graph_b, "PathLayer", SPEED)
 
     paths_from_point_b_to_segment_a = []
     paths_from_point_b_to_interpolated_a = []
