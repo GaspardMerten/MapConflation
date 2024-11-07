@@ -96,7 +96,7 @@ class SimpleConflater(Conflater):
 
         p = Point(x, y)
 
-        result = p.project(LineString([p1, p2]))
+        result = LineString([p1, p2]).interpolate(LineString([p1, p2]).project(p))
 
         return result.x, result.y
 
