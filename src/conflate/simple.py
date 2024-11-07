@@ -1,5 +1,4 @@
 import math
-import multiprocessing
 from collections import defaultdict
 from typing import Generator, Tuple, List
 
@@ -101,55 +100,23 @@ class SimpleConflater(Conflater):
 
         return result.x, result.y
 
-    # Define the function that each process will execute
-    def process_match_chunk(self, chunk):
-        # Local match_count for each process
-        local_match_count = defaultdict(lambda: defaultdict(int))
+    def conflate(self) -> List[ConflationResult]:
+        match_count = defaultdict(lambda: defaultdict(int))
 
-        for match in chunk:
+        filtered_match = list(self.filtered_match())
+        for match in filtered_match:
             trace_a, _, trace_b = match
             trace_b = list(map(lambda x: x, trace_b))[5:-5]
 
             for point in trace_b:
-                closest_node, _, closest_next_node, _ = (
+                closest_node, closest_distance, closest_next_node, _ = (
                     self._find_closest_node(point, trace_a)
                 )
 
                 if closest_node is None:
                     continue
 
-                local_match_count[point][(closest_node, closest_next_node)] += 1
-
-        return local_match_count
-
-    # Function to merge dictionaries
-    def merge_dicts(self, dicts):
-        merged = defaultdict(lambda: defaultdict(int))
-        for d in dicts:
-            for point, inner_dict in d.items():
-                for key, count in inner_dict.items():
-                    merged[point][key] += count
-        return merged
-
-    def multiprocessed_code(self, filtered_match):
-        # Split `filtered_match` into chunks for each process
-        num_processes = multiprocessing.cpu_count()
-        chunk_size = len(filtered_match) // num_processes
-        chunks = [filtered_match[i:i + chunk_size] for i in range(0, len(filtered_match), chunk_size)]
-
-        # Create a pool of workers to process chunks in parallel
-        with multiprocessing.Pool(processes=num_processes) as pool:
-            # Each process returns its own `local_match_count` dict
-            local_match_counts = pool.map(self.process_match_chunk, chunks)
-
-        # Merge all local dictionaries into a single dictionary
-        result_match_count = self.merge_dicts(local_match_counts)
-
-        return result_match_count
-
-    def conflate(self) -> List[ConflationResult]:
-        filtered_match = list(self.filtered_match())
-        match_count = self.multiprocessed_code(filtered_match)
+                match_count[point][(closest_node, closest_next_node)] += 1
 
         # Majority voting
         match = []

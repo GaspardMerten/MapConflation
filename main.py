@@ -19,6 +19,7 @@ from src.graph.plot import plot_graphs, plot_graphs_with_results
 from src.graph.transform import reduce_bounding_box, crop_graph
 from src.map_matching.leuven import LeuvenMapMatching
 from src.trajectory.generate import generate_trajectories_new
+from src.types import ConflationResult
 
 
 def load_or_create(path: str):
@@ -165,11 +166,15 @@ def insert_node_at_edge(graph, edge, new_node_id, x, y):
 
 def load_or_conflate(graph_a, graph_b, matched_ids, path):
     if os.path.exists(path):
-        return json.load(open(path, "r"))
+        results = json.load(open(path, "r"))
+        return [ConflationResult.from_json(result) for result in results]
     else:
         conflater = SimpleConflater(graph_a, graph_b, matched_ids)
         results = conflater.conflate()
-        json.dump(results, open(path, "w"))
+
+        json.dump([
+            result.to_json() for result in results
+        ], open(path, "w"))
         return results
 
 if __name__ == "__main__":
@@ -192,7 +197,7 @@ if __name__ == "__main__":
     results = load_or_conflate(
         graph_a,
         graph_b,
-        matched_ids,
+        random.sample(matched_ids, 100),
         "out/results.json",
     )
 
