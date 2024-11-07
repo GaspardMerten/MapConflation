@@ -207,7 +207,7 @@ if __name__ == "__main__":
     results = load_or_conflate(
         graph_a,
         graph_b,
-        matched_ids[:5000],
+        random.sample(matched_ids, 3000),
         "out/results.json",
     )
 
@@ -247,4 +247,7 @@ if __name__ == "__main__":
                 graph_a[u][v]["speed"] = graph_b[edge[0]][edge[1]]["speed"]
         except Exception:
             print("No path")
+    for u, v in list(graph_a.edges):
+        if "speed" not in graph_a[u][v]:
+            graph_a.remove_edge(u, v)
     plot_graphs_with_results(graph_a, graph_b, results, "graphs.html")

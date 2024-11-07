@@ -104,7 +104,7 @@ class SimpleConflater(Conflater):
         match_count = defaultdict(lambda: defaultdict(int))
 
         filtered_match = list(self.filtered_match())
-        for match in filtered_match:
+        for match in tqdm(filtered_match, total=len(filtered_match)):
             trace_a, _, trace_b = match
             trace_b = list(map(lambda x: x, trace_b))[5:-5]
 
