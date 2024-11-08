@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import random
+from collections import defaultdict
 
 import geopandas as gpd
 import networkx as nx
@@ -100,15 +101,26 @@ def insert_node_at_edge(graph, edge, new_node_id, x, y):
     :param y: The y coordinate of the new node
     :return: The new graph with the node inserted
     """
-
-    if not graph.has_edge(edge[0], edge[1]):
+    if new_node_id in graph.nodes:
         return graph
-    graph.add_node(new_node_id, x=x, y=y)
-    graph.add_edge(edge[0], new_node_id)
-    graph.add_edge(new_node_id, edge[1])
-    # remove the original edge
-    graph.remove_edge(edge[0], edge[1])
+    # Find shortest path between the two nodes
+    shortest_path = nx.shortest_path(graph, edge[0], edge[1])
+    # Find where to insert the new node (between which two nodes) (MINIMUM DISTANCE)
+    min_distance = float("inf")
+    min_distance_index = 0
+    for i in range(len(shortest_path) - 1):
+        u, v = shortest_path[i], shortest_path[i + 1]
+        distance = (graph.nodes[u]["x"] - x) ** 2 + (graph.nodes[u]["y"] - y) ** 2
+        if distance < min_distance:
+            min_distance = distance
+            min_distance_index = i
 
+    # Insert the new node
+    graph.add_node(new_node_id, x=x, y=y)
+    graph.add_edge(shortest_path[min_distance_index], new_node_id)
+    graph.add_edge(new_node_id, shortest_path[min_distance_index + 1])
+    # remove the original edge
+    graph.remove_edge(shortest_path[min_distance_index], shortest_path[min_distance_index + 1])
     return graph
 
 
@@ -152,26 +164,6 @@ def add_random_speed_valus_to_graph(graph):
     return graph
 
 
-def insert_node_at_edge(graph, edge, new_node_id, x, y):
-    """
-    Insert a node in the edge (u, v) of the graph.
-    :param graph: The graph to insert the node
-    :param edge: The edge to insert the node
-    :param new_node_id: The new node to insert
-    :param x: The x coordinate of the new node
-    :param y: The y coordinate of the new node
-    :return: The new graph with the node inserted
-    """
-
-    if not graph.has_edge(edge[0], edge[1]):
-        return graph
-    graph.add_node(new_node_id, x=x, y=y)
-    graph.add_edge(edge[0], new_node_id)
-    graph.add_edge(new_node_id, edge[1])
-    # remove the original edge
-    graph.remove_edge(edge[0], edge[1])
-
-    return graph
 
 
 def load_or_conflate(graph_a, graph_b, matched_ids, path):
@@ -207,17 +199,18 @@ if __name__ == "__main__":
     results = load_or_conflate(
         graph_a,
         graph_b,
-        random.sample(matched_ids, 3000),
+        matched_ids,
         "out/results.json",
     )
 
     results_map = {result.point_b: result for result in results}
 
-    for edge in graph_b.edges:
-        # Check if both start and end nodes are in the results
-        if edge[0] not in results_map or edge[1] not in results_map:
-            continue
+    results_for_map_b = defaultdict(list)
 
+    for edge in graph_b.edges:
+        if edge[0] not in results_map or edge[1] not in results_map:
+            print("Edge not in results")
+            continue
         node_b_start = results_map[edge[0]]
         node_b_end = results_map[edge[1]]
         new_node_id_start = f"graph_b_{node_b_start.point_b}"
@@ -247,7 +240,5 @@ if __name__ == "__main__":
                 graph_a[u][v]["speed"] = graph_b[edge[0]][edge[1]]["speed"]
         except Exception:
             print("No path")
-    for u, v in list(graph_a.edges):
-        if "speed" not in graph_a[u][v]:
-            graph_a.remove_edge(u, v)
+
     plot_graphs_with_results(graph_a, graph_b, results, "graphs.html")

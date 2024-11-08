@@ -69,6 +69,7 @@ class SimpleConflater(Conflater):
         smallest_distance = float("inf")
         closest_node = None
         closest_next_node = None
+        closest_node_index = None
         id_b_point = self._coord_from_node_b(id_b)
 
         for index, (node, next_node) in enumerate(zip(sub_path_a[:-1], sub_path_a[1:])):
@@ -83,8 +84,9 @@ class SimpleConflater(Conflater):
                 smallest_distance = distance
                 closest_node = node
                 closest_next_node = next_node
+                closest_node_index = index
 
-        return closest_node, smallest_distance, closest_next_node, sub_path_a
+        return closest_node, smallest_distance, closest_next_node, sub_path_a[closest_node_index -1:]
 
     def _project_point(self, segment, point) -> Tuple[float, float]:
         x1, y1 = self._coord_from_node_a(segment[0])
@@ -109,14 +111,14 @@ class SimpleConflater(Conflater):
             trace_b = list(map(lambda x: x, trace_b))[5:-5]
 
             for point in trace_b:
-                closest_node, closest_distance, closest_next_node, _ = (
+                closest_node, closest_distance, closest_next_node, trace_a = (
                     self._find_closest_node(point, trace_a)
                 )
 
                 if closest_node is None:
                     continue
 
-                match_count[point][(closest_node, closest_next_node)] += 1
+                match_count[point][(closest_node, closest_next_node)] += 1 / closest_distance**2
 
         # Majority voting
         match = []
