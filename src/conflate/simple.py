@@ -46,6 +46,7 @@ class SimpleConflater(Conflater):
         skipped = 0
         not_skipped = 0
         for match in self.matches:
+            print(match)
             _, trace_b = match[0], match[2]
             if len(trace_b) < self.trace_b_min_length:
                 skipped += 1
@@ -69,24 +70,26 @@ class SimpleConflater(Conflater):
         smallest_distance = float("inf")
         closest_node = None
         closest_next_node = None
-        closest_node_index = None
         id_b_point = self._coord_from_node_b(id_b)
 
         for index, (node, next_node) in enumerate(zip(sub_path_a[:-1], sub_path_a[1:])):
-            # Compute perpendicular distance
-            x1, y1 = self._coord_from_node_a(node)
-            x2, y2 = self._coord_from_node_a(next_node)
-            x, y = id_b_point
+            try:
+                # Compute perpendicular distance
+                x1, y1 = self._coord_from_node_a(node)
+                x2, y2 = self._coord_from_node_a(next_node)
+                x, y = id_b_point
 
-            distance = point_to_segment_distance((x, y), (x1, y1), (x2, y2))
+                distance = point_to_segment_distance((x, y), (x1, y1), (x2, y2))
 
-            if distance < smallest_distance:
-                smallest_distance = distance
-                closest_node = node
-                closest_next_node = next_node
-                closest_node_index = index
+                if distance < smallest_distance:
+                    smallest_distance = distance
+                    closest_node = node
+                    closest_next_node = next_node
+            except Exception as e:
+                print(e)
+                continue
 
-        return closest_node, smallest_distance, closest_next_node, sub_path_a[closest_node_index -1:]
+        return closest_node, smallest_distance, closest_next_node, sub_path_a
 
     def _project_point(self, segment, point) -> Tuple[float, float]:
         x1, y1 = self._coord_from_node_a(segment[0])
@@ -111,14 +114,17 @@ class SimpleConflater(Conflater):
             trace_b = list(map(lambda x: x, trace_b))[5:-5]
 
             for point in trace_b:
-                closest_node, closest_distance, closest_next_node, trace_a = (
+                closest_node, closest_distance, closest_next_node, _ = (
                     self._find_closest_node(point, trace_a)
                 )
 
                 if closest_node is None:
                     continue
 
-                match_count[point][(closest_node, closest_next_node)] += 1 / closest_distance**2
+                if closest_distance *  111_000 > 15:
+                    continue
+
+                match_count[point][(closest_node, closest_next_node)] += 1
 
         # Majority voting
         match = []

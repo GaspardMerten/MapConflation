@@ -8,7 +8,7 @@ from src.types import ConflationResult
 
 BLUE = [0, 0, 255]
 GREEN = [0, 255, 0]
-SPEED = "[25*speed, 0, 0]"
+SPEED = "[25*speed, 0, 255-25*speed]"
 
 
 def create_layer(

@@ -96,15 +96,16 @@ class LeuvenMapMatching(MapMatching):
         self,
         trajectories: List[Trajectory],
         trajectories_ids: List[TrajectoryIds],
-        processes: int = max(1, cpu_count() - 4),
+        processes: int = max(1, cpu_count() - 8),
     ) -> List[Match]:
-        all_matches = []
-
         # Iterate over large batches
-        for large_batch in tqdm(range(0, len(trajectories), 4000), desc="Large batch"):
-            large_batch_trajectories = trajectories[large_batch : large_batch + 4000]
+        __step = 4000
+        for large_batch in tqdm(
+            range(0, len(trajectories), __step), desc="Large batch"
+        ):
+            large_batch_trajectories = trajectories[large_batch : large_batch + __step]
             large_batch_trajectories_ids = trajectories_ids[
-                large_batch : large_batch + 4000
+                large_batch : large_batch + __step
             ]
 
             batch_matches = []
@@ -127,6 +128,15 @@ class LeuvenMapMatching(MapMatching):
                 pool.close()
 
             # Add this batch's matches to the final result
-            all_matches.extend(batch_matches)
+            with open(f"resources/{large_batch}.json", "w") as f:
+                json.dump(batch_matches, f)
 
-        return all_matches
+        total = []
+
+        for i in range(0, len(trajectories), __step):
+            with open(f"resources/{i}.json", "r") as f:
+                total.extend(json.load(f))
+
+
+
+        return total
